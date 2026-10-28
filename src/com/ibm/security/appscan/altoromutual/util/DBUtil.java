@@ -425,19 +425,20 @@ public class DBUtil {
 		
 		try {
 			Connection connection = getConnection();
-			Statement statement = connection.createStatement();
-			//at the moment this query limits transfers to
-			//transfers between two user accounts
-			ResultSet resultSet =statement.executeQuery("SELECT USER_ID FROM PEOPLE"); 
+			try (Statement statement = connection.createStatement();
+				 //at the moment this query limits transfers to
+				 //transfers between two user accounts
+				 ResultSet resultSet = statement.executeQuery("SELECT USER_ID FROM PEOPLE")) {
 
-			ArrayList<String> users = new ArrayList<String>();
-			
-			while (resultSet.next()){
-				String name = resultSet.getString("USER_ID");
-				users.add(name);
+				ArrayList<String> users = new ArrayList<String>();
+				
+				while (resultSet.next()){
+					String name = resultSet.getString("USER_ID");
+					users.add(name);
+				}
+				
+				return users.toArray(new String[users.size()]);
 			}
-			
-			return users.toArray(new String[users.size()]);
 		} catch (SQLException e){
 			e.printStackTrace();
 			return new String[0];
@@ -447,21 +448,22 @@ public class DBUtil {
 	public static Account getAccount(long accountNo) throws SQLException {
 
 		Connection connection = getConnection();
-		Statement statement = connection.createStatement();
-		ResultSet resultSet =statement.executeQuery("SELECT ACCOUNT_NAME, BALANCE FROM ACCOUNTS WHERE ACCOUNT_ID = "+ accountNo +" "); /* BAD - user input should always be sanitized */
+		try (Statement statement = connection.createStatement();
+			 ResultSet resultSet =statement.executeQuery("SELECT ACCOUNT_NAME, BALANCE FROM ACCOUNTS WHERE ACCOUNT_ID = "+ accountNo +" ")) { /* BAD - user input should always be sanitized */
 
-		ArrayList<Account> accounts = new ArrayList<Account>(3);
-		while (resultSet.next()){
-			String name = resultSet.getString("ACCOUNT_NAME");
-			double balance = resultSet.getDouble("BALANCE"); 
-			Account newAccount = new Account(accountNo, name, balance);
-			accounts.add(newAccount);
+			ArrayList<Account> accounts = new ArrayList<Account>(3);
+			while (resultSet.next()){
+				String name = resultSet.getString("ACCOUNT_NAME");
+				double balance = resultSet.getDouble("BALANCE"); 
+				Account newAccount = new Account(accountNo, name, balance);
+				accounts.add(newAccount);
+			}
+			
+			if (accounts.size()==0)
+				return null;
+			
+			return accounts.get(0);
 		}
-		
-		if (accounts.size()==0)
-			return null;
-		
-		return accounts.get(0);
 	}
 
 	public static String addAccount(String username, String acctType) {
@@ -502,8 +504,9 @@ public class DBUtil {
 	public static String changePassword(String username, String password) {
 		try {
 			Connection connection = getConnection();
-			Statement statement = connection.createStatement();
-			statement.execute("UPDATE PEOPLE SET PASSWORD = '"+ password +"' WHERE USER_ID = '"+username+"'");
+			try (Statement statement = connection.createStatement()) {
+				statement.execute("UPDATE PEOPLE SET PASSWORD = '"+ password +"' WHERE USER_ID = '"+username+"'");
+			}
 			return null;
 		} catch (SQLException e){
 			return e.toString();
