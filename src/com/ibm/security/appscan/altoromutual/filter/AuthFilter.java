@@ -24,6 +24,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 
 import com.ibm.security.appscan.altoromutual.model.User;
@@ -64,7 +65,16 @@ public class AuthFilter implements Filter {
 				return;
 			}
 			else {
-				chain.doFilter(req, resp);
+				chain.doFilter(new HttpServletRequestWrapper(request) {
+					@Override
+					public String getParameter(String name) {
+						String value = super.getParameter(name);
+						if (value != null && "acctId".equals(name)) {
+							return ServletUtil.sanitizeWeb(value);
+						}
+						return value;
+					}
+				}, resp);
 			}
 		}
 	}
