@@ -23,7 +23,10 @@ import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
+
+import com.ibm.security.appscan.altoromutual.util.ServletUtil;
 
 
 /**
@@ -75,7 +78,16 @@ public class AccountViewServlet extends HttpServlet {
 			String endTime = request.getParameter("endDate");
 			
 			RequestDispatcher dispatcher = request.getRequestDispatcher("/bank/transaction.jsp?" + ((startTime!=null)?"&startTime="+startTime:"") + ((endTime!=null)?"&endTime="+endTime:""));
-			dispatcher.forward(request, response);
+			dispatcher.forward(new HttpServletRequestWrapper(request) {
+				@Override
+				public String getParameter(String name) {
+					String value = super.getParameter(name);
+					if (value != null && ("startDate".equals(name) || "endDate".equals(name))) {
+						return ServletUtil.sanitizeWeb(value);
+					}
+					return value;
+				}
+			}, response);
 		}
 	}
 }
