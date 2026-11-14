@@ -214,14 +214,14 @@ public class DBUtil {
 			return false; 
 		
 		Connection connection = getConnection();
-		Statement statement = connection.createStatement();
-		
-		ResultSet resultSet =statement.executeQuery("SELECT COUNT(*)FROM PEOPLE WHERE USER_ID = '"+ user +"' AND PASSWORD='" + password + "'"); /* BAD - user input should always be sanitized */
-		
-		if (resultSet.next()){
+		try (Statement statement = connection.createStatement();
+				ResultSet resultSet =statement.executeQuery("SELECT COUNT(*)FROM PEOPLE WHERE USER_ID = '"+ user +"' AND PASSWORD='" + password + "'")) { /* BAD - user input should always be sanitized */
 			
-				if (resultSet.getInt(1) > 0)
-					return true;
+			if (resultSet.next()){
+				
+					if (resultSet.getInt(1) > 0)
+						return true;
+			}
 		}
 		return false;
 	}
@@ -238,16 +238,17 @@ public class DBUtil {
 			return null; 
 		
 		Connection connection = getConnection();
-		Statement statement = connection.createStatement();
-		ResultSet resultSet =statement.executeQuery("SELECT FIRST_NAME,LAST_NAME,ROLE FROM PEOPLE WHERE USER_ID = '"+ username +"' "); /* BAD - user input should always be sanitized */
-
 		String firstName = null;
 		String lastName = null;
 		String roleString = null;
-		if (resultSet.next()){
-			firstName = resultSet.getString("FIRST_NAME");
-			lastName = resultSet.getString("LAST_NAME");
-			roleString = resultSet.getString("ROLE");
+		try (Statement statement = connection.createStatement()) {
+			ResultSet resultSet =statement.executeQuery("SELECT FIRST_NAME,LAST_NAME,ROLE FROM PEOPLE WHERE USER_ID = '"+ username +"' "); /* BAD - user input should always be sanitized */
+
+			if (resultSet.next()){
+				firstName = resultSet.getString("FIRST_NAME");
+				lastName = resultSet.getString("LAST_NAME");
+				roleString = resultSet.getString("ROLE");
+			}
 		}
 		
 		if (firstName == null || lastName == null)
@@ -272,19 +273,20 @@ public class DBUtil {
 			return null; 
 		
 		Connection connection = getConnection();
-		Statement statement = connection.createStatement();
-		ResultSet resultSet =statement.executeQuery("SELECT ACCOUNT_ID, ACCOUNT_NAME, BALANCE FROM ACCOUNTS WHERE USERID = '"+ username +"' "); /* BAD - user input should always be sanitized */
+		try (Statement statement = connection.createStatement();
+				ResultSet resultSet = statement.executeQuery("SELECT ACCOUNT_ID, ACCOUNT_NAME, BALANCE FROM ACCOUNTS WHERE USERID = '"+ username +"' ")) { /* BAD - user input should always be sanitized */
 
-		ArrayList<Account> accounts = new ArrayList<Account>(3);
-		while (resultSet.next()){
-			long accountId = resultSet.getLong("ACCOUNT_ID");
-			String name = resultSet.getString("ACCOUNT_NAME");
-			double balance = resultSet.getDouble("BALANCE"); 
-			Account newAccount = new Account(accountId, name, balance);
-			accounts.add(newAccount);
+			ArrayList<Account> accounts = new ArrayList<Account>(3);
+			while (resultSet.next()){
+				long accountId = resultSet.getLong("ACCOUNT_ID");
+				String name = resultSet.getString("ACCOUNT_NAME");
+				double balance = resultSet.getDouble("BALANCE"); 
+				Account newAccount = new Account(accountId, name, balance);
+				accounts.add(newAccount);
+			}
+			
+			return accounts.toArray(new Account[accounts.size()]);
 		}
-		
-		return accounts.toArray(new Account[accounts.size()]);
 	}
 
 	/**
@@ -375,7 +377,7 @@ public class DBUtil {
 			Connection connection = getConnection();
 
 			
-			Statement statement = connection.createStatement();
+			try (Statement statement = connection.createStatement()) {
 			
 			if (rowCount > 0)
 				statement.setMaxRows(rowCount);
@@ -419,6 +421,7 @@ public class DBUtil {
 			}
 			
 			return transactions.toArray(new Transaction[transactions.size()]); 
+			}
 	}
 
 	public static String[] getBankUsernames() {
@@ -467,8 +470,9 @@ public class DBUtil {
 	public static String addAccount(String username, String acctType) {
 		try {
 			Connection connection = getConnection();
-			Statement statement = connection.createStatement();
-			statement.execute("INSERT INTO ACCOUNTS (USERID,ACCOUNT_NAME,BALANCE) VALUES ('"+username+"','"+acctType+"', 0)");
+			try (Statement statement = connection.createStatement()) {
+				statement.execute("INSERT INTO ACCOUNTS (USERID,ACCOUNT_NAME,BALANCE) VALUES ('"+username+"','"+acctType+"', 0)");
+			}
 			return null;
 		} catch (SQLException e){
 			return e.toString();
